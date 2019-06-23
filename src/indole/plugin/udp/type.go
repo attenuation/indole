@@ -2,13 +2,12 @@ package udp
 
 import (
 	"net"
-	"sync/atomic"
 )
 
 // UDP ...
 type UDP struct {
-	conn   *net.UDPConn
-	remote atomic.Value
+	conn *net.UDPConn
+	addr *net.UDPAddr
 }
 
 // Close ...
@@ -18,16 +17,15 @@ func (thisptr *UDP) Close() error {
 
 // Read ...
 func (thisptr *UDP) Read(p []byte) (n int, err error) {
-	n, addr, err := thisptr.conn.ReadFromUDP(p)
-	thisptr.remote.Store(addr)
-	return n, err
+	for {
+		n, addr, err := thisptr.conn.ReadFromUDP(p)
+		if addr.IP.Equal(thisptr.addr.IP) && addr.Port == thisptr.addr.Port && addr.Zone == thisptr.addr.Zone {
+			return n, err
+		}
+	}
 }
 
 // Write ...
 func (thisptr *UDP) Write(p []byte) (n int, err error) {
-	addr, ok := thisptr.remote.Load().(*net.UDPAddr)
-	if ok && addr != nil {
-		return thisptr.conn.WriteToUDP(p, addr)
-	}
-	return 0, nil
+	return thisptr.conn.WriteToUDP(p, thisptr.addr)
 }

@@ -4,7 +4,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"sync/atomic"
 )
 
 // Build ...
@@ -19,14 +18,13 @@ func Build(args *Args) io.ReadWriteCloser {
 	if err != nil {
 		log.Println("vertex", "udp", "new", "New", "net.ListenUDP", err)
 	}
-	var rmt *net.UDPAddr
 
-	var remote atomic.Value
+	remote, err := net.ResolveUDPAddr(args.Network, args.Remote)
+
 	ret := &UDP{
-		conn:   conn,
-		remote: remote,
+		conn: conn,
+		addr: remote,
 	}
-	ret.remote.Store(rmt)
 	return ret
 }
 
@@ -34,4 +32,5 @@ func Build(args *Args) io.ReadWriteCloser {
 type Args struct {
 	Network string `xml:"network,attr"`
 	Address string `xml:"address,attr"`
+	Remote  string `xml:"remote,attr"`
 }
